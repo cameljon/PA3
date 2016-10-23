@@ -1,0 +1,5 @@
+# depslib dependency file v1.0
+1477110726 source:f:\code\source\pa3\pa3\main.cpp
+	<iostream>
+	<string>
+
