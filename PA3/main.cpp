@@ -1,12 +1,11 @@
 #include <iostream>
 #include <string>
+#include <fstream>
+
 using namespace std;
 
-enum ReadingStatus {  NOT_STARTED = 0,
-                      READING     = 1,
-                      FINISHED    = 2 };
-enum PurchaseStatus { OWNED       = 0,
-                      WISHLIST    = 1 };
+enum ReadingStatus {NOT_STARTED = 0, READING = 1, FINISHED = 2};
+enum PurchaseStatus {OWNED = 0, WISHLIST = 1};
 
 struct Book
 {
@@ -18,17 +17,24 @@ struct Book
 
 string ReadingStatusString(ReadingStatus rs)
 {
-	if      (rs == NOT_STARTED)	{ return "Not Started"; }
-	else if (rs == READING)     { return "Reading"; }
-	else if (rs == FINISHED)    { return "Finished"; }
-	else    { return "?"; }
+	if (rs == NOT_STARTED)
+        { return "Not Started"; }
+	else if (rs == READING)
+        { return "Reading"; }
+	else if (rs == FINISHED)
+        { return "Finished"; }
+	else
+        { return "?"; }
 }
 
 string PurchaseStatusString(PurchaseStatus ps)
 {
-	if      (ps == OWNED)    { return "Owned"; }
-	else if (ps == WISHLIST) { return "Wishlist"; }
-	else    { return "?"; }
+	if (ps == OWNED)
+        { return "Owned"; }
+	else if (ps == WISHLIST)
+        { return "Wishlist"; }
+	else
+        { return "?"; }
 }
 
 void SetBook(Book& book, string title, string author, PurchaseStatus ps, ReadingStatus rs)
@@ -59,17 +65,17 @@ void DisplayBookList(Book books[100], int bookCount)
 int GetValidInput(int min, int max)
 {
     int choice = 0;
-    cout << ">>";
-    cin >> choice;
-    cout << endl;
-    while (choice < min && choice > max)
+    do
     {
-        cout << "Error: Invalid choice!" << endl;
-        cout << ">>";
+        cout << ">> ";
         cin >> choice;
-        cout << endl;
-    }
+        if (choice < min || choice > max)
+        {
+            cout << "Error: Invalid choice!" << endl;
+        }
+    } while (choice < min || choice > max);
     cin.ignore();
+    cout << endl;
     return choice;
 }
 
@@ -143,6 +149,102 @@ int AddBookMenu(Book books[100], int& bookCount)
     bookCount++;
 }
 
+void DisplayStats(Book books[100], int bookCount)
+{
+    int totalFinished = 0;
+    int totalReading = 0;
+    int totalUnstarted = 0;
+
+    for (int i = 0; i < bookCount; i++)
+    {
+        if (books[i].readingStatus = NOT_STARTED)
+        {
+            totalUnstarted++;
+        }
+        else if (books[i].readingStatus = READING)
+        {
+            totalReading++;
+        }
+        else if (books[i].readingStatus = FINISHED)
+        {
+            totalFinished++;
+        }
+    }
+    cout << "Not started: " << totalUnstarted << " Reading: " << totalReading
+           << " Finished: " << totalFinished << endl;
+}
+
+void SaveList(Book books[100], int bookCount)
+{
+    ofstream output("booklist.txt");
+    for (int i = 0; i < bookCount; i++)
+    {
+        output << "BOOK_" << i << endl
+               << books[i].title << endl
+               << books[i].author << endl
+               << books[i].purchaseStatus << endl
+               << books[i].readingStatus << endl;
+    }
+    output.close();
+    cout << "Save complete!" << endl;
+}
+
+void LoadList(Book books[100], int& bookCount)
+{
+    ifstream input("booklist.txt");
+    bookCount = 0;
+    string title, status, author, buffer;
+    int rs, ps;
+    while (input >> buffer)
+    {
+        input.ignore();
+        getline(input, title);
+        getline(input, author);
+        input >> ps;
+        input >> rs;
+        SetBook(books[bookCount], title, author, (PurchaseStatus)ps, (ReadingStatus)rs);
+        bookCount++;
+    }
+}
+
+void ExportCsv(Book books[100], int& bookCount)
+{
+    ofstream output("booklist.csv");
+
+    output << "TITLE,AUTHOR,READING?,OWNED?" << endl;
+
+    for (int i = 0; i < bookCount; i++)
+    {
+        output << books[i].title << ","
+            << books[i].author << ","
+            << books[i].readingStatus << ","
+            << books[i].purchaseStatus << ","
+            << endl;
+    }
+    output.close();
+}
+
+void ExportUnfinishedBooks(Book books[100], int& bookCount)
+{
+    ofstream output("booklist.csv");
+
+    output << "TITLE,AUTHOR,READING?,OWNED?" << endl;
+
+    for (int i = 0; i < bookCount; i++)
+    {
+        if (books[i].readingStatus == NOT_STARTED ||
+            books[i].readingStatus == READING)
+        {
+            output << books[i].title << ","
+                << books[i].author << ","
+                << books[i].readingStatus << ","
+                << books[i].purchaseStatus << ","
+                << endl;
+        }
+    }
+    output.close();
+}
+
 void MainMenu(Book books[100], int& bookCount)
 {
     bool done = false;
@@ -151,8 +253,12 @@ void MainMenu(Book books[100], int& bookCount)
         cout << "1. Add book" << endl;
         cout << "2. Update book" << endl;
         cout << "3. Display book list" << endl;
-        cout << "4. Quit" << endl;
-        switch (GetValidInput(1, 4))
+        cout << "4. Display stats" << endl;
+        cout << "5. Export books" << endl;
+        cout << "6. Export unfinished books" << endl;
+        cout << "7. Quit" << endl;
+
+        switch (GetValidInput(1, 7))
         {
             case 1:
                 AddBookMenu(books, bookCount);
@@ -164,35 +270,27 @@ void MainMenu(Book books[100], int& bookCount)
                 DisplayBookList(books, bookCount);
                 break;
             case 4:
+                DisplayStats(books, bookCount);
+                break;
+            case 5:
+                ExportCsv(books, bookCount);
+                break;
+            case 6:
+                ExportUnfinishedBooks(books, bookCount);
+                break;
+            case 7:
+                SaveList(books, bookCount);
                 done = true;
                 break;
-
         }
     }
 }
 
 int main()
 {
-//	Book bookA, bookB, bookC, bookD, bookE, bookF;
-//
-//	// Testing all permutations of purchase/reading status
-//	SetBook(bookA, "Harry Potter and the Sorcerer's Stone", "J K Rowling", OWNED, FINISHED);
-//	SetBook(bookB, "Who cooked the last supper?", "Rosalind Miles", OWNED, READING);
-//	SetBook(bookC, "Marvirinstrato", "Tim Westover", OWNED, NOT_STARTED);
-//
-//	SetBook(bookD, "Masters of Doom", "David Kushner", WISHLIST, FINISHED);
-//	SetBook(bookE, "Earthsong", "Suzette Haden Elgin", WISHLIST, READING);
-//	SetBook(bookF, "Invent to Learn", "Martinez, Stager", WISHLIST, NOT_STARTED);
-//
-//	DisplayBook(bookA);
-//	DisplayBook(bookB);
-//	DisplayBook(bookC);
-//	DisplayBook(bookD);
-//	DisplayBook(bookE);
-//	DisplayBook(bookF);
-
     Book books[100];
     int bookCount = 0;
+    LoadList(books, bookCount);
     MainMenu(books, bookCount);
 
 	return 0;
